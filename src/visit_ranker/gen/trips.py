@@ -107,8 +107,7 @@ class TripSimulator:
             .drop_duplicates([level, "base_city"])
         )
         return {
-            (row[level], row["base_city"]): row["home_office_id"]
-            for _, row in counts.iterrows()
+            (row[level], row["base_city"]): row["home_office_id"] for _, row in counts.iterrows()
         }
 
     # --- gravity terms ------------------------------------------------------
@@ -179,9 +178,7 @@ class TripSimulator:
             + weights["size"] * features["size"]
             + weights["distance"] * features["distance"]
             + weights["dept_mix"]
-            * _standardise(
-                candidates[f"mix_{department}"].to_numpy(dtype=float)
-            )
+            * _standardise(candidates[f"mix_{department}"].to_numpy(dtype=float))
             + weights["dedicated_space"]
             * np.array([(o, department) in self.dedicated for o in office_ids], dtype=float)
         )
@@ -237,9 +234,7 @@ def generate_trips(
     # story and what gives the feature something to do.
     city_pool = cfg.cities
     bounds = cfg.travel.destination_cities_per_traveller
-    dept_presence = (
-        employees.groupby(["dept_l3", "base_city"]).size().rename("n").reset_index()
-    )
+    dept_presence = employees.groupby(["dept_l3", "base_city"]).size().rename("n").reset_index()
     presence_lookup = {
         (row.dept_l3, row.base_city): row.n for row in dept_presence.itertuples(index=False)
     }
@@ -267,7 +262,8 @@ def generate_trips(
     # Departments that relocate mid-history.
     l3_departments = sorted(employees["dept_l3"].unique())
     relocating = rng.choice(
-        l3_departments, size=min(cfg.travel.relocation["departments"], len(l3_departments)),
+        l3_departments,
+        size=min(cfg.travel.relocation["departments"], len(l3_departments)),
         replace=False,
     )
     for department in relocating:
@@ -308,9 +304,7 @@ def generate_trips(
     trip_frame["trip_length_days"] = rng.integers(
         length_cfg["min"], length_cfg["max"] + 1, size=len(trip_frame)
     )
-    trip_frame["origin_city"] = trip_frame["emp_id"].map(
-        employees.set_index("emp_id")["base_city"]
-    )
+    trip_frame["origin_city"] = trip_frame["emp_id"].map(employees.set_index("emp_id")["base_city"])
 
     # Walk the trips in time order, choosing an office for each.
     chosen: list[str] = []

@@ -79,7 +79,13 @@ FEATURE_COLUMNS = [
     "days_since_previous_visit",
     "is_first_ever_visit_to_city",
     "candidates_in_city",
-    "emp_prior_visits_to_city",
+    # A COUNT of prior visits, which is always available: zero is a fact, not
+    # a missing value. The distinction from the personal-history family is the
+    # whole basis of the availability contract - "they have never been here"
+    # is information, while "the share of their previous visits that went to
+    # this office" is undefined when there are no previous visits. The first
+    # belongs in trip context; the second must be masked out.
+    "prior_visit_count",
 ]
 
 # Which features belong to which availability family. A feature whose family
@@ -114,7 +120,7 @@ FEATURE_FAMILIES = {
         "days_since_previous_visit",
         "is_first_ever_visit_to_city",
         "candidates_in_city",
-        "emp_prior_visits_to_city",
+        "prior_visit_count",
     ],
 }
 
@@ -235,9 +241,7 @@ def build_candidates(cfg: Config | None = None) -> pd.DataFrame:
         recent_dept = history.recent_by_l3_city.get((employee["dept_l3"], city), [])
 
         manager = employee["manager_id"]
-        has_leader = manager is not None and not (
-            isinstance(manager, float) and np.isnan(manager)
-        )
+        has_leader = manager is not None and not (isinstance(manager, float) and np.isnan(manager))
         leader_history: list[tuple[str, pd.Timestamp]] = []
         leader_home: str | None = None
         if has_leader:
@@ -266,9 +270,7 @@ def build_candidates(cfg: Config | None = None) -> pd.DataFrame:
 
         habit_office = emp_history[-1][0] if emp_history else None
         previous_date = last_visit_date.get((trip.emp_id, city))
-        days_since = (
-            (trip.arrival_date - previous_date).days if previous_date is not None else -1
-        )
+        days_since = (trip.arrival_date - previous_date).days if previous_date is not None else -1
 
         for office in candidates.itertuples(index=False):
             key = (office.office_id, employee["dept_l1"])
@@ -296,9 +298,7 @@ def build_candidates(cfg: Config | None = None) -> pd.DataFrame:
                     "emp_is_top2": float(office.office_id in emp_top[:2]),
                     # 3. leader
                     "leader_visit_share": _share(leader_history, office.office_id),
-                    "leader_is_top1": float(
-                        bool(leader_top) and office.office_id == leader_top[0]
-                    ),
+                    "leader_is_top1": float(bool(leader_top) and office.office_id == leader_top[0]),
                     # 4. team
                     "team_visit_share": _share(team_history, office.office_id),
                     "team_visit_share_decayed": _decayed_share(
@@ -334,7 +334,7 @@ def build_candidates(cfg: Config | None = None) -> pd.DataFrame:
                     "days_since_previous_visit": float(days_since),
                     "is_first_ever_visit_to_city": float(not emp_history),
                     "candidates_in_city": float(len(candidates)),
-                    "emp_prior_visits_to_city": float(len(emp_history)),
+                    "prior_visit_count": float(len(emp_history)),
                     # availability, carried per row
                     **{f"available_{family}": value for family, value in available.items()},
                 }

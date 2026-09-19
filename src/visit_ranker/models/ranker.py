@@ -14,6 +14,7 @@ came first or third within a trip.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import lightgbm as lgb
 import numpy as np
@@ -114,7 +115,7 @@ def train_family(
         # trips all have the features M uses. Training only on exact matches
         # would starve the general models, which are precisely the ones that
         # have to carry the hardest cases.
-        subset = train[train["mask_key"].map(lambda k: mask.covers(mask_from_key(str(k))))]
+        subset = train[train["mask_key"].map(lambda k, m=mask: m.covers(mask_from_key(str(k))))]
         if subset.empty:
             continue
         subset = subset.sort_values(["trip_id", "office_id"])
@@ -126,7 +127,7 @@ def train_family(
         valid_names = ["train"]
 
         validation_subset = validation[
-            validation["mask_key"].map(lambda k: mask.covers(mask_from_key(str(k))))
+            validation["mask_key"].map(lambda k, m=mask: m.covers(mask_from_key(str(k))))
         ]
         if not validation_subset.empty:
             validation_subset = validation_subset.sort_values(["trip_id", "office_id"])
@@ -200,16 +201,14 @@ def fit_logistic_baseline(train: pd.DataFrame, columns: list[str]):
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
 
-    model = make_pipeline(
-        StandardScaler(), LogisticRegression(max_iter=2000, C=1.0)
-    )
+    model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000, C=1.0))
     model.fit(train[columns], train["label"])
     return model
 
 
 @dataclass
 class TrainedBaselines:
-    logistic: object | None
+    logistic: Any | None
     logistic_columns: list[str]
 
     def score(self, frame: pd.DataFrame, name: str) -> pd.Series:

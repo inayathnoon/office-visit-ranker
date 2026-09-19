@@ -66,8 +66,7 @@ def generate_all(cfg: Config | None = None, clean: bool = True) -> dict:
         # has no natural scale.
         "choice_weights": cfg.choice.weights,
         "choice_weights_normalised": {
-            k: round(v / sum(cfg.choice.weights.values()), 4)
-            for k, v in cfg.choice.weights.items()
+            k: round(v / sum(cfg.choice.weights.values()), 4) for k, v in cfg.choice.weights.items()
         },
         "exploration_share_configured": cfg.choice.exploration_share,
         "noise_scale": cfg.choice.noise_scale,

@@ -98,9 +98,9 @@ def mask_for_row(row: pd.Series) -> AvailabilityMask:
 
 def mask_keys(frame: pd.DataFrame) -> pd.Series:
     """Vectorised mask key per row."""
-    personal = frame["available_habit"].astype(bool) & frame[
-        "available_personal_history"
-    ].astype(bool)
+    personal = frame["available_habit"].astype(bool) & frame["available_personal_history"].astype(
+        bool
+    )
     parts = []
     for index in range(len(frame)):
         families = set()
@@ -117,9 +117,7 @@ def mask_from_key(key: str) -> AvailabilityMask:
     return AvailabilityMask(frozenset() if key == "none" else frozenset(key.split("+")))
 
 
-def resolve_model(
-    mask: AvailabilityMask, trained: set[str]
-) -> tuple[AvailabilityMask, int]:
+def resolve_model(mask: AvailabilityMask, trained: set[str]) -> tuple[AvailabilityMask, int]:
     """Find the model to score this mask with, and how far it fell back.
 
     Walks down the hierarchy until it reaches a mask that has a trained model.

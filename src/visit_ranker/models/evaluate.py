@@ -51,9 +51,7 @@ def trip_level(frame: pd.DataFrame, score_column: str = "score") -> pd.DataFrame
     # With one relevant item, DCG@k = 1/log2(rank+1) when rank <= k, else 0,
     # and the ideal DCG is 1 - so NDCG is just the discount.
     correct["ndcg_at_1"] = np.where(correct["rank"] <= 1, 1.0, 0.0)
-    correct["ndcg_at_3"] = np.where(
-        correct["rank"] <= 3, 1.0 / np.log2(correct["rank"] + 1), 0.0
-    )
+    correct["ndcg_at_3"] = np.where(correct["rank"] <= 3, 1.0 / np.log2(correct["rank"] + 1), 0.0)
     return correct
 
 
@@ -61,11 +59,15 @@ METRICS = ["ndcg_at_1", "ndcg_at_3", "reciprocal_rank", "recall_at_2", "hit_at_1
 
 
 def summarise(per_trip: pd.DataFrame, by: list[str] | None = None) -> pd.DataFrame:
-    grouped = per_trip.groupby(by, sort=True) if by else None
-    if grouped is None:
-        row = {metric: round(float(per_trip[metric].mean()), 4) for metric in METRICS}
-        row["trips"] = int(len(per_trip))
-        return pd.DataFrame([row])
+    if not by:
+        row: dict[str, float] = {
+            metric: round(float(per_trip[metric].mean()), 4) for metric in METRICS
+        }
+        row["trips"] = float(len(per_trip))
+        frame = pd.DataFrame([row])
+        frame["trips"] = frame["trips"].astype(int)
+        return frame
+    grouped = per_trip.groupby(by, sort=True)
     out = grouped[METRICS].mean().round(4)
     out["trips"] = grouped.size()
     return out.reset_index()
@@ -98,18 +100,16 @@ def evaluate_scored(scored: pd.DataFrame, score_column: str = "score") -> dict:
         "by_visitor_type": summarise(per_trip, ["visitor_type"]),
         "by_city_size": summarise(per_trip, ["city_size"]),
         "by_mask": summarise(per_trip, ["mask_key"]),
-        "by_scored_by": (
-            summarise(per_trip, ["scored_by"]) if "scored_by" in per_trip else None
-        ),
+        "by_scored_by": (summarise(per_trip, ["scored_by"]) if "scored_by" in per_trip else None),
         "per_trip": per_trip,
     }
 
 
 def lift_table(results: dict[str, pd.DataFrame], reference: str) -> pd.DataFrame:
     """Every model's headline metrics, and its lift over a reference rule."""
-    rows = []
+    rows: list[dict] = []
     for name, overall in results.items():
-        row = {"model": name}
+        row: dict = {"model": name}
         row.update({metric: float(overall[metric].iloc[0]) for metric in METRICS})
         row["trips"] = int(overall["trips"].iloc[0])
         rows.append(row)
@@ -119,7 +119,10 @@ def lift_table(results: dict[str, pd.DataFrame], reference: str) -> pd.DataFrame
     if not base.empty:
         for metric in METRICS:
             denominator = float(base[metric].iloc[0])
-            table[f"lift_{metric}"] = (
-                table[metric] / denominator - 1 if denominator > 0 else np.nan
-            ).round(4)
+            lift = (
+                table[metric] / denominator - 1
+                if denominator > 0
+                else pd.Series(np.nan, index=table.index)
+            )
+            table[f"lift_{metric}"] = lift.round(4)
     return table.sort_values("ndcg_at_3", ascending=False).reset_index(drop=True)

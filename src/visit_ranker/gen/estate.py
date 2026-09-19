@@ -86,11 +86,17 @@ def generate_org(cfg: Config, offices: pd.DataFrame) -> pd.DataFrame:
 
     teams: list[dict] = []
     for l1 in cfg.org.departments_l1:
-        for i2 in range(1, int(rng.integers(cfg.org.l2_per_l1["min"], cfg.org.l2_per_l1["max"] + 1)) + 1):
+        for i2 in range(
+            1, int(rng.integers(cfg.org.l2_per_l1["min"], cfg.org.l2_per_l1["max"] + 1)) + 1
+        ):
             l2 = f"{l1} Division {i2}"
-            for i3 in range(1, int(rng.integers(cfg.org.l3_per_l2["min"], cfg.org.l3_per_l2["max"] + 1)) + 1):
+            for i3 in range(
+                1, int(rng.integers(cfg.org.l3_per_l2["min"], cfg.org.l3_per_l2["max"] + 1)) + 1
+            ):
                 l3 = f"{l2} Group {i3}"
-                for i4 in range(1, int(rng.integers(cfg.org.l4_per_l3["min"], cfg.org.l4_per_l3["max"] + 1)) + 1):
+                for i4 in range(
+                    1, int(rng.integers(cfg.org.l4_per_l3["min"], cfg.org.l4_per_l3["max"] + 1)) + 1
+                ):
                     teams.append(
                         {"dept_l1": l1, "dept_l2": l2, "dept_l3": l3, "dept_l4": f"{l3} Team {i4}"}
                     )
@@ -127,10 +133,22 @@ def generate_org(cfg: Config, offices: pd.DataFrame) -> pd.DataFrame:
     # genuinely MISSING feature rather than a null to impute.
     manager_of_team = employees.groupby("dept_l4")["emp_id"].first().to_dict()
     manager = employees["dept_l4"].map(manager_of_team).to_numpy()
-    manager = np.where(employees["emp_id"].to_numpy() == manager, None, manager)
+    is_own_manager = employees["emp_id"].to_numpy() == manager
+    manager = np.asarray(
+        [None if own else value for own, value in zip(is_own_manager, manager, strict=True)],
+        dtype=object,
+    )
 
+    # A share of employees have no manager recorded at all. Built with a list
+    # comprehension rather than np.where because the replacement value is
+    # None - an object - and np.where on a mixed object array is exactly the
+    # sort of thing that silently produces a float NaN instead.
     drop_rate = employees["employee_type"].map(cfg.org.no_manager_share_by_type).to_numpy()
-    manager = np.where(rng.random(n) < drop_rate, None, manager)
+    drops = rng.random(n) < drop_rate
+    manager = np.asarray(
+        [None if drop else value for drop, value in zip(drops, manager, strict=True)],
+        dtype=object,
+    )
     employees["manager_id"] = manager
 
     # Everyone sits somewhere. A home office matters because it is what makes
