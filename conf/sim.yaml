@@ -1,0 +1,157 @@
+# ---------------------------------------------------------------------------
+# Simulator configuration.
+#
+# The weights under `choice` are the answer the model is trying to find. They
+# are written to data/truth/ground_truth.json and the README compares the
+# model's recovered feature importance against them. Nothing here describes
+# any real organisation, estate or travel pattern.
+# ---------------------------------------------------------------------------
+
+seed: 31415
+
+profile: demo
+
+profiles:
+  # Runs end to end in a couple of minutes.
+  demo:
+    n_employees: 15_000
+    n_cities: 20
+    n_months: 24
+    traveller_share: 0.060
+    trips_per_traveller: { mean: 5.0, sigma: 0.55 }
+    end_date: "2025-06-30"
+
+  # The size the brief describes: ~9,000 travellers, ~45,000 trips.
+  full:
+    n_employees: 120_000
+    n_cities: 40
+    n_months: 24
+    traveller_share: 0.075
+    trips_per_traveller: { mean: 5.0, sigma: 0.55 }
+    end_date: "2025-06-30"
+
+# ---------------------------------------------------------------------------
+# Geography. Invented city names; a city holds between one and twelve offices.
+# ---------------------------------------------------------------------------
+geography:
+  cities:
+    - Ashvale
+    - Bracken
+    - Calderhelm
+    - Dunmoor
+    - Everwyn
+    - Fallowmere
+    - Grimsby Reach
+    - Holloway
+    - Ironmere
+    - Jessamine
+    - Kelverton
+    - Lonsdale
+    - Marchwood
+    - Nettlebed
+    - Orrinshaw
+    - Pemberley
+    - Quenby
+    - Ravensfell
+    - Stanhope
+    - Thornbury
+    - Ullswater
+    - Vexley
+    - Whitmarsh
+    - Xavier Point
+    - Yarrow Hill
+    - Zennor
+    - Amberfield
+    - Brightwater
+    - Coldharbour
+    - Drakemoor
+    - Eastcote
+    - Fernhurst
+    - Greywell
+    - Hartsmere
+    - Innsbury
+    - Juniper Vale
+    - Kingsmoor
+    - Larkfield
+    - Mossbank
+    - Norbridge
+
+  # Minimum of two. A city with one office is not a ranking problem, and the
+  # first version left half the trips with a single candidate - the headline
+  # accuracy was then mostly a count of cities where there was nothing to get
+  # wrong.
+  offices_per_city: { min: 2, max: 12 }
+  # A city's office count follows its size, so a hub has a hard ranking problem
+  # and a small city is close to trivial. Reporting accuracy by city size is
+  # the only way to see that.
+  office_count_zipf: 0.55
+  office_size: { mean: 900, sigma: 0.65, min: 60 }
+  # Distance from the city centre, in kilometres.
+  distance_km: { mean: 6.5, sigma: 0.8, max: 35.0 }
+  dedicated_space_share: 0.22
+
+# ---------------------------------------------------------------------------
+# Organisation.
+# ---------------------------------------------------------------------------
+org:
+  departments_l1: ["Engineering", "Product", "Commercial", "Operations", "Corporate"]
+  l2_per_l1: { min: 2, max: 3 }
+  l3_per_l2: { min: 2, max: 4 }
+  l4_per_l3: { min: 2, max: 5 }
+  team_size: { mean: 28, sigma: 0.7, min: 3 }
+  # Contractors and BPO staff often have no manager in the HR system, which is
+  # what makes the leader-gravity feature genuinely missing rather than null.
+  employee_type_mix: { FTE: 0.78, intern: 0.04, contractor: 0.12, BPO: 0.06 }
+  no_manager_share_by_type: { FTE: 0.01, intern: 0.05, contractor: 0.55, BPO: 0.70 }
+
+# ---------------------------------------------------------------------------
+# TRUE CHOICE MODEL.
+#
+# For a trip to city c, the traveller picks among that city's offices by
+# multinomial logit over:
+#
+#   utility_j = w_habit    * visited_this_office_last_time
+#             + w_leader   * leader_uses_this_office
+#             + w_team     * team_uses_this_office
+#             + w_l3       * l3_department_uses_this_office
+#             + w_size     * standardised log(headcount)
+#             + w_distance * standardised -distance_from_centre
+#             + w_dept_mix * department mix similarity
+#             + w_dedicated* department has dedicated space here
+#             + Gumbel noise
+#
+# with an exploration share that ignores utility entirely. That share is the
+# irreducible error: no feature predicts it, and a model reporting accuracy
+# above the ceiling it implies is reading something it should not have.
+# ---------------------------------------------------------------------------
+choice:
+  weights:
+    habit: 2.40
+    leader: 1.05
+    team: 0.85
+    l3_department: 0.55
+    size: 0.45
+    distance: 0.30
+    dept_mix: 0.40
+    dedicated_space: 0.70
+  exploration_share: 0.12
+  # Gumbel scale. Larger means noisier choices and a lower attainable ceiling.
+  noise_scale: 1.0
+
+# ---------------------------------------------------------------------------
+# Travel behaviour.
+# ---------------------------------------------------------------------------
+travel:
+  trip_length_days: { min: 1, max: 9 }
+  # Where people go. A traveller has a small set of cities they actually visit,
+  # rather than sampling the whole estate every trip.
+  destination_cities_per_traveller: { min: 1, max: 5 }
+  repeat_destination_share: 0.72
+  taps_per_trip_day: { mean: 1.6, sigma: 0.4 }
+
+  # A department relocating mid-history. Every feature has to be computed
+  # as-of the trip, or a model trained on the whole window learns the post-move
+  # office and looks clairvoyant on the pre-move trips.
+  relocation:
+    departments: 2
+    at_month: 13
