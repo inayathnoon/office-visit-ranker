@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Learning-to-rank model predicting which office a travelling employee will visit, with first-class handling of missing features. Synthetic data."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
 
 dependencies = [
     "numpy>=1.26",
