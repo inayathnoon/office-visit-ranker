@@ -1,7 +1,7 @@
 # office-visit-ranker
 
 A learning-to-rank model that predicts which office a travelling employee will walk into, so
-access, desks and catering can be prepared before they arrive — with missing features routed
+access, desks and catering can be prepared before they arrive - with missing features routed
 around rather than imputed, and an accuracy ceiling the model is not allowed to exceed.
 
 > **Synthetic data notice.** All data in this repository is programmatically generated. It
@@ -22,13 +22,13 @@ Two things make this harder than it sounds.
 
 **It is a ranking problem, not a classification problem.** The service sends one instruction per
 trip, with the option of naming two buildings when unsure. What matters is the order of offices
-within a trip, not the calibrated probability of each — and a classifier optimising per-row log
+within a trip, not the calibrated probability of each - and a classifier optimising per-row log
 loss is indifferent to whether the right building came first or third.
 
 **The most predictive features are the ones most often missing.** A first-time visitor to a city
 has no habit to go on. A contractor with no manager in the HR extract has no leader gravity. Those
-are exactly the travellers for whom getting it wrong is most visible, and the standard fix —
-impute a zero, add an indicator — quietly tells the model something false.
+are exactly the travellers for whom getting it wrong is most visible, and the standard fix -
+impute a zero, add an indicator - quietly tells the model something false.
 
 ---
 
@@ -85,12 +85,12 @@ Each trip's office is drawn from a multinomial logit over that city's offices:
 
 $$U_j = w_{\text{habit}}h_j + w_{\text{leader}}\ell_j + w_{\text{team}}t_j + w_{\text{dept}}d_j + w_{\text{size}}\tilde{s}_j + w_{\text{dist}}\tilde{x}_j + w_{\text{mix}}m_j + w_{\text{ded}}e_j + \varepsilon_j$$
 
-with $\varepsilon_j$ Gumbel — and **12% of choices ignore $U$ entirely**. That exploration share
+with $\varepsilon_j$ Gumbel - and **12% of choices ignore $U$ entirely**. That exploration share
 is irreducible error: no feature predicts it, so the attainable ceiling is knowable (0.910 here,
 allowing for an exploring traveller still being right by luck at $1/n$) and is written to
 `ground_truth.json`.
 
-**Anything above that ceiling is a leak, not a better model** — and a Dagster asset check blocks
+**Anything above that ceiling is a leak, not a better model** - and a Dagster asset check blocks
 on it. This is the check a repository built on real data cannot have. (ADR 3)
 
 Three versions of the simulator were wrong, each recorded in `conf/sim.yaml`:
@@ -99,7 +99,7 @@ Three versions of the simulator were wrong, each recorded in `conf/sim.yaml`:
   cities where there was nothing to get wrong.
 - Leader gravity fired on **0.3%** of trips, because a manager's usual office was derived purely
   from their own travel history and managers rarely travel to the same city.
-- Destinations were drawn uniformly, which left leader gravity at 4% — your manager is almost
+- Destinations were drawn uniformly, which left leader gravity at 4% - your manager is almost
   never in a randomly chosen city. Travellers now pick destinations weighted by their
   department's presence with a strong pull toward their manager's city, which is both the
   realistic story and what gives the feature something to do.
@@ -107,7 +107,7 @@ Three versions of the simulator were wrong, each recorded in `conf/sim.yaml`:
 ### 2. Features that cannot see the future
 
 Trips are walked in date order and a trip only ever sees history accumulated before it. The
-guarantee is **structural** — the history object does not contain the future — rather than a
+guarantee is **structural** - the history object does not contain the future - rather than a
 filter somebody has to remember to apply.
 
 Twenty-seven features across nine families: habit, personal history, leader gravity, team gravity,
@@ -129,17 +129,17 @@ two populations that behave completely differently.
 
 So a trip carries an **availability mask**, and is routed to a model trained on exactly the
 features that mask has. Masks with fewer than 60 training trips fall back through a declared order
-— leader, then department, then team, then personal, least informative first — terminating at the
+- leader, then department, then team, then personal, least informative first - terminating at the
 empty mask, which always has a model.
 
 | Mask | Trips | Features | Scored by | Fallback |
 |---|---|---|---|---|
-| department+personal+team | 2,509 (56%) | 25 | itself | — |
-| department+leader+personal+team | 603 (14%) | 27 | itself | — |
-| none | 480 (11%) | 12 | itself | — |
-| department+team | 345 (8%) | 19 | itself | — |
-| department | 294 (7%) | 16 | itself | — |
-| department+leader+team | 149 (3%) | 21 | itself | — |
+| department+personal+team | 2,509 (56%) | 25 | itself | - |
+| department+leader+personal+team | 603 (14%) | 27 | itself | - |
+| none | 480 (11%) | 12 | itself | - |
+| department+team | 345 (8%) | 19 | itself | - |
+| department | 294 (7%) | 16 | itself | - |
+| department+leader+team | 149 (3%) | 21 | itself | - |
 | leader | 52 (1%) | 14 | `none` | 1 step |
 | department+leader | 27 (1%) | 18 | `department` | 1 step |
 
@@ -149,8 +149,8 @@ and asserts the raise. (ADR 2)
 
 ### 4. Calibration and abstention
 
-A LambdaMART score is not a probability, so the **margin** between first and second — which is
-comparable across trips, where the raw score is not — is mapped to one by isotonic regression
+A LambdaMART score is not a probability, so the **margin** between first and second - which is
+comparable across trips, where the raw score is not - is mapped to one by isotonic regression
 fitted on the validation window.
 
 Below a threshold the service returns the top two offices as a tie. Access can be granted to two
@@ -173,10 +173,10 @@ Trained on months 1–18, validated on 19–21, tested on 22–24.
 | Team's usual office | 0.6454 | 0.7675 | 0.7644 | 0.7663 | +18.6% |
 | Logistic regression | 0.4869 | 0.6970 | 0.6751 | 0.7190 | +7.7% |
 | Leader's usual office | 0.4346 | 0.6580 | 0.6349 | 0.6552 | +1.6% |
-| Biggest office in city | 0.4183 | 0.6474 | 0.6234 | 0.6454 | — |
+| Biggest office in city | 0.4183 | 0.6474 | 0.6234 | 0.6454 | - |
 | Nearest to centre | 0.2451 | 0.5109 | 0.4914 | 0.4657 | −21.1% |
 
-**Hit@1 0.7402 against a ceiling of 0.9101 — 81% of what is attainable.**
+**Hit@1 0.7402 against a ceiling of 0.9101 - 81% of what is attainable.**
 
 ![Ranking quality against every baseline](docs/img/lift_table.png)
 
@@ -198,7 +198,7 @@ a thin argument for a gradient-boosted ranker, and the overall number hides the 
 **The entire value of the model is in the cold-start segment.** On repeat visitors a one-line rule
 is exactly as good. This is worth saying plainly because it changes the business case: the model is
 not "better ranking", it is "an answer for the 12% of trips where the obvious rule has nothing to
-say" — and those are the travellers most likely to end up at the wrong reception.
+say" - and those are the travellers most likely to end up at the wrong reception.
 
 ### By availability tier and by city size
 
@@ -223,31 +223,31 @@ Expected calibration error **0.0246**.
 ![What abstention buys](docs/img/abstention_curve.png)
 
 At a threshold of 0.70 the service answers **83%** of trips with a single office and is right
-**79%** of the time — against 74% if it always answered with one. The remaining 17% get two
+**79%** of the time - against 74% if it always answered with one. The remaining 17% get two
 buildings named.
 
 ### Did the model find the simulator's structure?
 
 ![Recovered importance against planted weights](docs/img/importance_vs_truth.png)
 
-**No — and the reason is measurable, which is the interesting part.** Spearman 0.24, with leader
+**No - and the reason is measurable, which is the interesting part.** Spearman 0.24, with leader
 gravity ranked 8th of 8 against a planted rank of 2nd. Two mechanisms, both checked rather than
 asserted:
 
 - **Habit absorbs the gravity terms.** A traveller went to the leader's office last time *because*
-  of the leader. Once habit is in the model, leader gravity is nearly redundant —
+  of the leader. Once habit is in the model, leader gravity is nearly redundant -
   `corr(leader_is_top1, habit_last_visit) = 0.26`.
 - **Leader and team gravity are collinear.** The manager is a member of the team, so their office
   *is* the team's office **42%** of the time; the features correlate at **0.32**. A tree
   attributes to whichever it splits on first.
 
 Running the same comparison on the cold-start model, which has no habit to lean on, does not fix
-it — it over-weights team gravity instead, for the same collinearity reason.
+it - it over-weights team gravity instead, for the same collinearity reason.
 
 The honest conclusion: **attribution answers "what did this model use", which is a different
 question from "what drives the world"**. When features encode each other's downstream effects, no
 amount of attribution separates them. Recovering a causal weight needs the feature varied
-independently — an experiment, not an explanation. A repository that could not check this would
+independently - an experiment, not an explanation. A repository that could not check this would
 have presented the SHAP ranking as the answer. (ADR 4)
 
 ![Global feature importance](docs/img/shap_summary.png)
@@ -305,7 +305,7 @@ search on the validation window.
 - **The model is worth building only for the cold-start segment, and the repo should be read that
   way.** On 88% of trips a one-line rule matches it. In production I would ship the rule as the
   default path and the model as the cold-start path, which is a smaller system with most of the
-  value — and I would revisit that split as the traveller population changed.
+  value - and I would revisit that split as the traveller population changed.
 
 - **74 first-visit trips in the test window is not enough to size the gain.** The +24% lift has a
   wide interval around it that the point estimate hides. The full profile has ten times as many,
@@ -317,7 +317,7 @@ search on the validation window.
   the first.
 
 - **The 12% exploration is a modelling convenience, not a measured quantity.** In reality
-  unexplained choice is neither constant nor random — it is driven by things nobody recorded, like
+  unexplained choice is neither constant nor random - it is driven by things nobody recorded, like
   a meeting room booking or a colleague's suggestion. Some of it would be predictable given the
   right feed, which means the "ceiling" here is really "the ceiling given this feature set".
 

@@ -34,7 +34,7 @@ at "multicollinearity".
 
 ## What this does not fix
 
-The cold-start comparison is not better in rank correlation — it over-weights
+The cold-start comparison is not better in rank correlation - it over-weights
 team gravity instead, for the collinearity reason above. So the honest
 conclusion is not "here is how to recover the true structure" but:
 
@@ -42,7 +42,7 @@ conclusion is not "here is how to recover the true structure" but:
 > question from "what drives the world". When features encode each other's
 > downstream effects, no amount of attribution separates them, and the only
 > reliable way to recover a causal weight is to vary the feature independently
-> — which is an experiment, not an explanation.
+> - which is an experiment, not an explanation.
 
 A repository that could not check this would have reported the SHAP ranking as
 though it were the answer.
