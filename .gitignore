@@ -12,3 +12,21 @@ __pycache__/
 .mypy_cache/
 .DS_Store
 .env
+
+# Test and build output
+.coverage
+coverage.xml
+htmlcov/
+/dist/
+/build/
+*.egg-info/
+
+# Editors and notebooks
+.idea/
+.vscode/
+.ipynb_checkpoints/
+
+# Secrets: .env is already ignored, but the per-profile variants are the ones
+# that actually get created and forgotten about.
+.env.*
+!.env.example
