@@ -8,6 +8,15 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=700]
       - id: check-merge-conflict
+      - id: check-toml
+      # Pairs with `* text=auto eol=lf` in .gitattributes: catch a stray CRLF
+      # at commit time rather than as a whole-file diff later.
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      # macOS and Linux disagree about whether Foo.py and foo.py are the same
+      # file; the repo should not depend on which one cloned it.
+      - id: check-case-conflict
+      - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.9

@@ -5,6 +5,17 @@ on:
     branches: [main]
   pull_request:
 
+# The default token is read/write on every scope. Nothing here writes to the
+# repo, so say so explicitly.
+permissions:
+  contents: read
+
+# A second push to a branch makes the first run's result irrelevant. Cancel it
+# instead of paying for both.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
