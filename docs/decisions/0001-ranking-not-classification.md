@@ -10,8 +10,8 @@ and it is the wrong shape.
 
 ## Why
 
-The service sends **one instruction per trip** — grant access here, book a desk
-here, tell catering this reception — with the option of naming two buildings
+The service sends **one instruction per trip** - grant access here, book a desk
+here, tell catering this reception - with the option of naming two buildings
 when it is unsure. What matters is the *order* of the offices within a trip,
 not the absolute probability of each.
 
@@ -39,7 +39,7 @@ With exactly one relevant item per group several standard metrics collapse,
 and `models/evaluate.py` says so rather than quoting them as independent
 evidence:
 
-* NDCG@1 **is** Hit@1 — the discount at rank 1 is 1 and the ideal DCG is 1.
+* NDCG@1 **is** Hit@1 - the discount at rank 1 is 1 and the ideal DCG is 1.
 * MRR is the mean of 1/rank of the correct office.
 * NDCG@3 is the one that adds information, because it separates "second" from
   "third" when the top-1 is wrong.

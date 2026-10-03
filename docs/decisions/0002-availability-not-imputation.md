@@ -7,9 +7,9 @@
 Some features cannot exist for some trips:
 
 * a **first-time visitor** to a city has no habit and no personal history
-  there — 12% of trips on the demo profile;
+  there - 12% of trips on the demo profile;
 * a **contractor or BPO worker** often has no manager in the HR extract, so
-  there is no leader gravity — leader is available on only 19% of trips.
+  there is no leader gravity - leader is available on only 19% of trips.
 
 The standard move is to impute zero and add an indicator column.
 
@@ -29,10 +29,10 @@ not make it do so, and nothing checks whether it did.
 
 ## Decision
 
-A trip carries an **availability mask** over four optional families — personal
+A trip carries an **availability mask** over four optional families - personal
 history, leader, team, department. A model is trained per mask on exactly the
 features that mask has. Masks with fewer than 60 training trips fall back
-through a declared order (leader, then department, then team, then personal —
+through a declared order (leader, then department, then team, then personal -
 least informative first), terminating at the empty mask, which always has a
 model.
 
@@ -47,7 +47,7 @@ rare masks fall back one step.
 ## Where the line is drawn
 
 `prior_visit_count` is always available and lives in trip context, while
-`emp_visit_share` is masked out. A count of zero is a fact — "they have never
+`emp_visit_share` is masked out. A count of zero is a fact - "they have never
 been here". A *share* over an empty history is undefined. That distinction is
 the whole basis of the contract, and a test caught the original name
 (`emp_prior_visits_to_city`) implying the wrong one.
